@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Value Case — automation business case builder</title>
+  <meta name="description" content="Build a CFO-ready business case for an automation project: NPV, IRR, payback, scenarios, sensitivity, and a printable executive one-pager." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2334c759'/%3E%3Cpath d='M16 7v18M11 11.5c0-2 2-3 5-3s5 1 5 3-2 3-5 3.5-5 1.5-5 3.5 2 3 5 3 5-1 5-3' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="kit.css" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__in">
+      <a class="topbar__back" href="https://darshanpatil.me/#work">← Darshan Patil</a>
+      <span class="topbar__name"><span class="logo" style="background:linear-gradient(135deg,#34c759,#0a9a6c)">$</span>Value Case</span>
+      <nav class="topbar__links">
+        <a href="#method">Method</a>
+        <a href="https://github.com/DarshanPatil1128/value-case" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <p class="hero__eyebrow" style="color:var(--good)">Business case builder</p>
+      <h1>Make the case in numbers.</h1>
+      <p>Value Case turns a few operational inputs into the business case a CFO expects — net present value, IRR,
+        payback, best and worst cases, and what the result is most sensitive to.</p>
+      <div class="hero__actions no-print">
+        <select class="select preset" id="preset" aria-label="Start from a preset"></select>
+        <button class="btn btn--ghost" id="share">Copy share link</button>
+        <button class="btn btn--ghost" id="print">Print one-pager</button>
+        <span class="note">Presets use illustrative assumptions</span>
+      </div>
+    </section>
+
+    <div class="grid grid--side">
+      <aside class="card card--sticky no-print" id="inputs">
+        <div class="field">
+          <div class="field__row"><label for="name">Process</label></div>
+          <input class="input" id="name" type="text" />
+        </div>
+
+        <p class="section-label">Today</p>
+        <div class="two">
+          <div class="field"><div class="field__row"><label for="volume">Volume / year</label></div><input class="input" id="volume" type="number" min="0" step="1000" /></div>
+          <div class="field"><div class="field__row"><label for="minutes">Minutes each</label></div><input class="input" id="minutes" type="number" min="0" step="0.5" /></div>
+        </div>
+        <div class="two">
+          <div class="field"><div class="field__row"><label for="rate">Loaded $ / hour</label></div><input class="input" id="rate" type="number" min="0" step="1" /></div>
+          <div class="field"><div class="field__row"><label for="errCost">Cost per error</label></div><input class="input" id="errCost" type="number" min="0" step="5" /></div>
+        </div>
+        <div class="field">
+          <div class="field__row"><label for="errRate">Manual error rate</label><output for="errRate"></output></div>
+          <input type="range" id="errRate" min="0" max="20" step="0.5" />
+        </div>
+
+        <p class="section-label">With automation</p>
+        <div class="field">
+          <div class="field__row"><label for="auto">Share of volume automated</label><output for="auto"></output></div>
+          <input type="range" id="auto" min="0" max="100" />
+        </div>
+        <div class="field">
+          <div class="field__row"><label for="residual">Human time still needed on automated items</label><output for="residual"></output></div>
+          <input type="range" id="residual" min="0" max="80" />
+        </div>
+        <div class="field">
+          <div class="field__row"><label for="errCut">Error reduction</label><output for="errCut"></output></div>
+          <input type="range" id="errCut" min="0" max="100" />
+        </div>
+
+        <p class="section-label">Investment</p>
+        <div class="two">
+          <div class="field"><div class="field__row"><label for="impl">One-time cost</label></div><input class="input" id="impl" type="number" min="0" step="5000" /></div>
+          <div class="field"><div class="field__row"><label for="run">Annual run cost</label></div><input class="input" id="run" type="number" min="0" step="5000" /></div>
+        </div>
+        <div class="field">
+          <div class="field__row"><label for="ramp">Months to full benefit</label><output for="ramp"></output></div>
+          <input type="range" id="ramp" min="0" max="18" />
+        </div>
+        <div class="field">
+          <div class="field__row"><label for="disc">Discount rate</label><output for="disc"></output></div>
+          <input type="range" id="disc" min="0" max="20" />
+        </div>
+        <div class="field">
+          <div class="field__row"><label>Horizon</label></div>
+          <div class="seg" id="horizon" role="group" aria-label="Horizon in years">
+            <button data-v="3" aria-pressed="true">3 years</button><button data-v="5">5 years</button>
+          </div>
+        </div>
+      </aside>
+
+      <div class="stack">
+        <div class="print-title"><h2 id="pTitle"></h2><p class="muted">Automation business case · prepared with Value Case</p></div>
+
+        <div class="kpis">
+          <div class="kpi kpi--hero kpi--green"><div class="kpi__label">Net present value</div><div class="kpi__value" id="kNpv">–</div><div class="kpi__hint" id="kNpvHint"></div></div>
+          <div class="kpi"><div class="kpi__label">Payback</div><div class="kpi__value" id="kPay">–</div><div class="kpi__hint">from go-live</div></div>
+          <div class="kpi"><div class="kpi__label">IRR</div><div class="kpi__value" id="kIrr">–</div><div class="kpi__hint" id="kIrrHint"></div></div>
+          <div class="kpi"><div class="kpi__label">Capacity freed</div><div class="kpi__value" id="kFte">–</div><div class="kpi__hint" id="kFteHint"></div></div>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><span class="card__title">Cumulative cash flow</span><span class="card__sub">Undiscounted, by month</span></div>
+          <div class="chart" id="cash"></div>
+          <div class="legend">
+            <span><i style="background:var(--c2)"></i>Expected</span>
+            <span><i style="background:var(--c1)"></i>Aggressive</span>
+            <span><i style="background:var(--c5)"></i>Conservative</span>
+          </div>
+        </div>
+
+        <div class="grid grid--2">
+          <div class="card">
+            <div class="card__head"><span class="card__title">Scenarios</span></div>
+            <table class="scen" id="scen"></table>
+            <p class="note" style="margin-top:10px">Conservative: 20% less automated, 50% slower ramp, 15% cost overrun. Aggressive: 10% more automated, 25% faster ramp.</p>
+          </div>
+          <div class="card">
+            <div class="card__head"><span class="card__title">Where the value comes from</span><span class="card__sub">Annual, at full run-rate</span></div>
+            <div class="chart" id="sources"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head"><span class="card__title">What the NPV is most sensitive to</span><span class="card__sub">Each input moved ±20%, others held constant</span></div>
+          <div class="chart" id="tornado"></div>
+          <div class="legend"><span><i style="background:var(--c5)"></i>Input 20% lower</span><span><i style="background:var(--c1)"></i>Input 20% higher</span></div>
+        </div>
+
+        <div class="card summary">
+          <div class="card__head"><span class="card__title">Executive summary</span><button class="btn btn--sm btn--ghost no-print" id="copy">Copy</button></div>
+          <div id="summary"></div>
+        </div>
+
+        <div class="card no-print" id="method">
+          <div class="card__head"><span class="card__title">Method</span></div>
+          <div class="method">
+            <p><strong>Benefits.</strong> Labor savings = volume × share automated × (1 − residual human time) × minutes ÷ 60 × loaded rate. Error savings = automated volume × error rate × reduction × cost per error. Benefits ramp linearly to full run-rate.</p>
+            <p><strong>Costs.</strong> One-time cost lands at go-live (month 0). Run cost is spread evenly by month.</p>
+            <p><strong>Returns.</strong> NPV discounts monthly cash flows at the annual rate converted to monthly. IRR is solved numerically and annualized. Payback is the month cumulative cash turns positive.</p>
+            <p><strong>Capacity.</strong> Hours freed ÷ 1,800 productive hours per FTE-year. Freed capacity is usually redeployed rather than cut — the summary says so.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer no-print">
+    <span>Built by <a href="https://darshanpatil.me">Darshan Patil</a></span>
+    <span>Inputs are saved in the share link, nowhere else.</span>
+  </footer>
+
+  <script src="kit.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
